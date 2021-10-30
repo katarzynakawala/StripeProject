@@ -13,23 +13,26 @@ const (
 	Version = "2018-09-24"
 )
 
- type Customer struct {
-	ID string `json:"id"`
- }
+type Customer struct {
+	ID            string `json:"id"`
+	DefaultSource string `json:"default_source"`
+	Email         string `json:"email`
+}
 
- type Client struct{
+type Client struct {
 	Key string
- }
+}
 
- func (c *Client) Customer(token string) (*Customer, error) {
+func (c *Client) Customer(token, email string) (*Customer, error) {
 	endpoint := "https://api.stripe.com/v1/customers"
 
 	v := url.Values{}
 	v.Set("source", token)
+	v.Set("email", email)
 
 	req, err := http.NewRequest(http.MethodPost, endpoint, strings.NewReader(v.Encode()))
 	if err != nil {
-		return nil, err 
+		return nil, err
 	}
 
 	req.Header.Set("Stripe-Version", Version)
@@ -45,7 +48,7 @@ const (
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return nil, err 
+		return nil, err
 	}
 
 	fmt.Println(string(body))
@@ -57,4 +60,4 @@ const (
 	}
 
 	return &cus, nil
- }
+}
