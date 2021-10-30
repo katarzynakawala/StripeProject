@@ -11,9 +11,9 @@ package stripe_test
 	c := stripe.Client{
 		Key: "sk_test_4eC39HqLyjWDarjtT1zdp7dc",
 	}
- 	token := "tok_amex"
+ 	tok := "tok_amex"
 
- 	cus, err := c.Customer(token)
+ 	cus, err := c.Customer(tok)
  	if err != nil {
  		t.Errorf("Customer() err = %v; want %v", err, nil)
  	}

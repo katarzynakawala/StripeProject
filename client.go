@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+const (
+	Version = "2018-09-24"
+)
+
  type Customer struct {
 	ID string `json:"id"`
  }
@@ -18,7 +22,7 @@ import (
  }
 
  func (c *Client) Customer(token string) (*Customer, error) {
-	endpoint := "http://api.stripe.com/v1/customers"
+	endpoint := "https://api.stripe.com/v1/customers"
 
 	v := url.Values{}
 	v.Set("source", token)
@@ -28,6 +32,7 @@ import (
 		return nil, err 
 	}
 
+	req.Header.Set("Stripe-Version", Version)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth(c.Key, "")
 	httpClient := http.Client{}
@@ -38,7 +43,7 @@ import (
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err 
 	}
