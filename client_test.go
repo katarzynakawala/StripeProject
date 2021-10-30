@@ -1,15 +1,29 @@
 package stripe_test
 
- import (
- 	"strings"
- 	"testing"
+import (
+	"flag"
+	"strings"
+	"testing"
 
- 	"github.com/katarzynakawala/StripeProject"
- )
+	"github.com/katarzynakawala/StripeProject"
+)
 
+var (
+	apiKey string
+	//"sk_test_4eC39HqLyjWDarjtT1zdp7dc"
+)
+
+func init() {
+	flag.StringVar(&apiKey, "key", "", "Your Test secret key for the Stipre Api. If present, integration tests will be run using this key.")
+}
  func TestClient_Customer(t *testing.T) {
+	if apiKey == "" {
+		t.Skip("No API key provided")
+	}
+
+
 	c := stripe.Client{
-		Key: "sk_test_4eC39HqLyjWDarjtT1zdp7dc",
+		Key: apiKey,
 	}
  	tok := "tok_amex"
 
