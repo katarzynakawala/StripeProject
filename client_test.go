@@ -60,9 +60,17 @@ func TestClient_Charge(t *testing.T) {
 		Key: apiKey,
 	}
 
-	cusID := "cus123"
+	//Create a customer for the test
+	tok := "tok_amex"
+	email := "test@test.com"
+
+	cus, err := c.Customer(tok, email)
+	if err != nil {
+		t.Fatalf("Customer() err =%v; want nil", err)
+	}
+
 	amount := 1234
-	charge, err := c.Charge(cusID, amount)
+	charge, err := c.Charge(cus.ID, amount)
 
 	if err != nil {
 		t.Errorf("Charge() err = %v; want %v", err, nil)
