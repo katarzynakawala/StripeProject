@@ -102,6 +102,7 @@ func (c *Client) Charge(customerID string, amount int) (*Charge, error) {
 		return nil, err
 	}
 
+	fmt.Println(string(body))
 	var chg Charge
 	err = json.Unmarshal(body, &chg)
 	if err != nil {

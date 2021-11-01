@@ -69,8 +69,9 @@ func TestClient_Charge(t *testing.T) {
 		t.Fatalf("Customer() err =%v; want nil", err)
 	}
 
+	_ = cus
 	amount := 1234
-	charge, err := c.Charge(cus.ID, amount)
+	charge, err := c.Charge("cus_123", amount)
 
 	if err != nil {
 		t.Errorf("Charge() err = %v; want %v", err, nil)
