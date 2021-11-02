@@ -2,7 +2,6 @@ package stripe
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -62,7 +61,10 @@ func (c *Client) Customer(token, email string) (*Customer, error) {
 		return nil, err
 	}
 
-	fmt.Println(string(body))
+	if res.StatusCode >= 400 {
+		return nil, parseError(body)
+	}
+
 	var cus Customer
 
 	err = json.Unmarshal(body, &cus)
