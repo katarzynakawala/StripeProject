@@ -13,6 +13,12 @@ var (
 	//"sk_test_4eC39HqLyjWDarjtT1zdp7dc"
 )
 
+const (
+	tokenAmex        = "tok_amex"
+	tokenInvalid     = "tok_egegege"
+	tokenExpiredCard = "tok_chargeDeclinedExpiredCard"
+)
+
 func init() {
 	flag.StringVar(&apiKey, "key", "", "Your Test secret key for the Stipre Api. If present, integration tests will be run using this key.")
 }
@@ -26,12 +32,20 @@ func TestClient_Customer(t *testing.T) {
 		Key: apiKey,
 	}
 
-	tests := map[string]struct{
+	tests := map[string]struct {
 		token string
-		email string 
+		email string
 	}{
 		"valid customer with amex": {
-			token: "tok_amex",
+			token: tokenAmex,
+			email: "test@test.com",
+		},
+		"invalid token": {
+			token: tokenInvalid,
+			email: "test@test.com",
+		},
+		"card expired": {
+			token: tokenExpiredCard,
 			email: "test@test.com",
 		},
 	}
@@ -60,8 +74,6 @@ func TestClient_Customer(t *testing.T) {
 		})
 	}
 }
-	
-	
 
 func TestClient_Charge(t *testing.T) {
 	if apiKey == "" {
@@ -105,10 +117,9 @@ func TestClient_Charge(t *testing.T) {
 	}
 
 	//Create a customer for the test
-	tok := "tok_amex"
 	email := "test@test.com"
 
-	cus, err := c.Customer(tok, email)
+	cus, err := c.Customer(tokenAmex, email)
 	if err != nil {
 		t.Fatalf("Customer() err =%v; want nil", err)
 	}
