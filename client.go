@@ -102,7 +102,11 @@ func (c *Client) Charge(customerID string, amount int) (*Charge, error) {
 		return nil, err
 	}
 
-	fmt.Println(string(body))
+	if res.StatusCode >= 400 {
+		return nil, parseError(body)
+	}
+
+
 	var chg Charge
 	err = json.Unmarshal(body, &chg)
 	if err != nil {
@@ -110,4 +114,13 @@ func (c *Client) Charge(customerID string, amount int) (*Charge, error) {
 	}
 
 	return &chg, nil
+}
+
+func parseError(data []byte) error {
+	var se Error
+	err := json.Unmarshal(data, &se)
+	if err != nil {
+		return err
+	}
+	return se 
 }
