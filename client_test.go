@@ -25,30 +25,43 @@ func TestClient_Customer(t *testing.T) {
 	c := stripe.Client{
 		Key: apiKey,
 	}
-	tok := "tok_amex"
-	email := "test@test.com"
 
-	cus, err := c.Customer(tok, email)
-	if err != nil {
-		t.Errorf("Customer() err = %v; want %v", err, nil)
+	tests := map[string]struct{
+		token string
+		email string 
+	}{
+		"valid customer with amex": {
+			token: "tok_amex",
+			email: "test@test.com",
+		},
 	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			cus, err := c.Customer(tc.token, tc.email)
+			if err != nil {
+				t.Errorf("Customer() err = %v; want %v", err, nil)
+			}
 
-	if cus == nil {
-		t.Fatalf("Customer() = nil; want non-nil value")
-	}
+			if cus == nil {
+				t.Fatalf("Customer() = nil; want non-nil value")
+			}
 
-	if !strings.HasPrefix(cus.ID, "cus_") {
-		t.Errorf("Customer() ID = %s; want prefix %q", cus.ID, "cus_")
-	}
+			if !strings.HasPrefix(cus.ID, "cus_") {
+				t.Errorf("Customer() ID = %s; want prefix %q", cus.ID, "cus_")
+			}
 
-	if !strings.HasPrefix(cus.DefaultSource, "card_") {
-		t.Errorf("Customer() DefaultSource = %s; want prefix %q", cus.DefaultSource, "card_")
-	}
+			if !strings.HasPrefix(cus.DefaultSource, "card_") {
+				t.Errorf("Customer() DefaultSource = %s; want prefix %q", cus.DefaultSource, "card_")
+			}
 
-	if cus.Email != email {
-		t.Errorf("Customer() Email = %s; want %s", cus.Email, email)
+			if cus.Email != tc.email {
+				t.Errorf("Customer() Email = %s; want %s", cus.Email, tc.email)
+			}
+		})
 	}
 }
+	
+	
 
 func TestClient_Charge(t *testing.T) {
 	if apiKey == "" {
