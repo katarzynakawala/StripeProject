@@ -32,18 +32,27 @@ type Charge struct {
 }
 
 type Client struct {
-	Key     string
-	BaseURL string
+	Key        string
+	BaseURL    string
+	HttpClient interface {
+		Do(*http.Request) (*http.Response, error)
+	}
 }
 
+func (c *Client) do(req *http.Request) (*http.Response, error) {
+	httpClient := c.HttpClient
+	if httpClient == nil {
+		httpClient = &http.Client{}
+	}
+	return httpClient.Do(req)
+}
 
 func (c *Client) url(path string) string {
 	if c.BaseURL == "" {
 		c.BaseURL = DefaultBaseURL
 	}
-		return fmt.Sprintf("%s%s", c.BaseURL, path)
-	}
-
+	return fmt.Sprintf("%s%s", c.BaseURL, path)
+}
 
 func (c *Client) Customer(token, email string) (*Customer, error) {
 	endpoint := c.url("/customers")
@@ -60,9 +69,8 @@ func (c *Client) Customer(token, email string) (*Customer, error) {
 	req.Header.Set("Stripe-Version", Version)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth(c.Key, "")
-	httpClient := http.Client{}
 
-	res, err := httpClient.Do(req)
+	res, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -103,9 +111,8 @@ func (c *Client) Charge(customerID string, amount int) (*Charge, error) {
 	req.Header.Set("Stripe-Version", Version)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth(c.Key, "")
-	httpClient := http.Client{}
 
-	res, err := httpClient.Do(req)
+	res, err := c.do(req)
 	if err != nil {
 		return nil, err
 	}
