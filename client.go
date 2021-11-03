@@ -44,6 +44,11 @@ func (c *Client) do(req *http.Request) (*http.Response, error) {
 	if httpClient == nil {
 		httpClient = &http.Client{}
 	}
+	req.Header.Set("Stripe-Version", Version)
+	if req.Method != http.MethodGet {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
+	req.SetBasicAuth(c.Key, "")
 	return httpClient.Do(req)
 }
 
@@ -65,10 +70,6 @@ func (c *Client) Customer(token, email string) (*Customer, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Set("Stripe-Version", Version)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.SetBasicAuth(c.Key, "")
 
 	res, err := c.do(req)
 	if err != nil {
@@ -107,10 +108,6 @@ func (c *Client) Charge(customerID string, amount int) (*Charge, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Set("Stripe-Version", Version)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.SetBasicAuth(c.Key, "")
 
 	res, err := c.do(req)
 	if err != nil {
