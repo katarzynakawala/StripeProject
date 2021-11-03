@@ -14,6 +14,7 @@ import (
 var (
 	apiKey string
 	//"sk_test_4eC39HqLyjWDarjtT1zdp7dc"
+	update bool
 )
 
 const (
@@ -24,6 +25,7 @@ const (
 
 func init() {
 	flag.StringVar(&apiKey, "key", "", "Your Test secret key for the Stipre Api. If present, integration tests will be run using this key.")
+	flag.BoolVar(&update, "update", false, "Set this flag to update the responses used in local tests. This requires that the key flag is set so that we can interact with the stripe API")
 }
 
 func TestClient_Local(t *testing.T) {
@@ -76,7 +78,27 @@ func TestClient_Local(t *testing.T) {
 	}
 }
 
-
+func stripeClient(t *testing.T) (*stripe.Client, func()) {
+	teardown := make([]func(), 0)
+	c := stripe.Client{
+		Key: apiKey,
+	}
+	if update {
+		rc := &recorderClient{}
+		c.HttpClient = rc
+		teardown = append(teardown, func() {
+			t.Logf("len(responses) = %d", len(rc.responses))
+			for _, res := range rc.responses {
+				t.Logf("Pretending to save res: %v\n", res)
+			}
+		})
+	}
+	return &c, func() {
+		for _, fn := range teardown {
+			fn()
+		}
+	}
+}
 
 func TestClient_Customer(t *testing.T) {
 	if apiKey == "" {
@@ -131,9 +153,6 @@ func TestClient_Customer(t *testing.T) {
 	}
 
 	//create stripe client
-	c := stripe.Client{
-		Key: apiKey,
-	}
 
 	tests := map[string]struct {
 		token  string
@@ -158,6 +177,8 @@ func TestClient_Customer(t *testing.T) {
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
+			c, teardown := stripeClient(t)
+			defer teardown()
 			cus, err := c.Customer(tc.token, tc.email)
 			for _, check := range tc.checks {
 				check(t, cus, err)
@@ -203,14 +224,12 @@ func TestClient_Charge(t *testing.T) {
 	}
 
 	//create stripe client
-	c := stripe.Client{
-		Key: apiKey,
-	}
-
-	//Create a customer for the test
+	c, teardown := stripeClient(t)
+	defer teardown()
+	tok := tokenAmex
 	email := "test@test.com"
 
-	cus, err := c.Customer(tokenAmex, email)
+	cus, err := c.Customer(tok, email)
 	if err != nil {
 		t.Fatalf("Customer() err =%v; want nil", err)
 	}
@@ -233,6 +252,8 @@ func TestClient_Charge(t *testing.T) {
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
+			c, teardown := stripeClient(t)
+			defer teardown()
 			charge, err := c.Charge(tc.customerID, tc.amount)
 			for _, check := range tc.checks {
 				check(t, charge, err)
