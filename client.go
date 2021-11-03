@@ -2,6 +2,7 @@ package stripe
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -12,6 +13,7 @@ import (
 const (
 	Version         = "2018-09-24"
 	DefaultCurrency = "usd"
+	DefaultBaseURL  = "https://api.stripe.com/v1"
 )
 
 type Customer struct {
@@ -30,11 +32,21 @@ type Charge struct {
 }
 
 type Client struct {
-	Key string
+	Key     string
+	BaseURL string
 }
 
+
+func (c *Client) url(path string) string {
+	if c.BaseURL == "" {
+		c.BaseURL = DefaultBaseURL
+	}
+		return fmt.Sprintf("%s%s", c.BaseURL, path)
+	}
+
+
 func (c *Client) Customer(token, email string) (*Customer, error) {
-	endpoint := "https://api.stripe.com/v1/customers"
+	endpoint := c.url("/customers")
 
 	v := url.Values{}
 	v.Set("source", token)
@@ -76,7 +88,7 @@ func (c *Client) Customer(token, email string) (*Customer, error) {
 }
 
 func (c *Client) Charge(customerID string, amount int) (*Charge, error) {
-	endpoint := "https://api.stripe.com/v1/charges"
+	endpoint := c.url("/charges")
 
 	v := url.Values{}
 	v.Set("customer", customerID)
@@ -108,7 +120,6 @@ func (c *Client) Charge(customerID string, amount int) (*Charge, error) {
 		return nil, parseError(body)
 	}
 
-
 	var chg Charge
 	err = json.Unmarshal(body, &chg)
 	if err != nil {
@@ -124,5 +135,5 @@ func parseError(data []byte) error {
 	if err != nil {
 		return err
 	}
-	return se 
+	return se
 }

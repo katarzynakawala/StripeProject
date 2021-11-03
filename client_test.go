@@ -2,6 +2,9 @@ package stripe_test
 
 import (
 	"flag"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -22,6 +25,59 @@ const (
 func init() {
 	flag.StringVar(&apiKey, "key", "", "Your Test secret key for the Stipre Api. If present, integration tests will be run using this key.")
 }
+
+func TestClient_Local(t *testing.T) {
+	//creation of the test server 
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+		fmt.Fprint(w, `{
+			"id": "cus_4QE0v7gcdox28x",
+			"object": "customer",
+			"address": null,
+			"balance": 0,
+			"created": 1405636867,
+			"currency": "usd",
+			"default_source": "card_14HNYk2eZvKYlo2C0zXVbXp3",
+			"delinquent": true,
+			"description": "My First Test Customer (created for API docs)",
+			"discount": null,
+			"email": null,
+			"invoice_prefix": "3A30AC2",
+			"invoice_settings": {
+			  "custom_fields": null,
+			  "default_payment_method": null,
+			  "footer": null
+			},
+			"livemode": false,
+			"metadata": {
+			  "order_id": "6735"
+			},
+			"name": null,
+			"next_invoice_sequence": 46690,
+			"phone": null,
+			"preferred_locales": [],
+			"shipping": null,
+			"tax_exempt": "none"
+		  }`)
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	//test client 
+	c := stripe.Client{
+		Key: "wrong-key",
+		BaseURL: server.URL,
+	}
+
+	_, err := c.Customer("random token", "random email")
+	if err != nil {
+		t.Fatalf("err = %v; want nil", err)
+	}
+}
+
+
+
 func TestClient_Customer(t *testing.T) {
 	if apiKey == "" {
 		t.Skip("No API key provided")
@@ -85,19 +141,18 @@ func TestClient_Customer(t *testing.T) {
 		checks []checkFn
 	}{
 		"valid customer with amex": {
-			token: tokenAmex,
-			email: "test@test.com",
+			token:  tokenAmex,
+			email:  "test@test.com",
 			checks: check(hasNoErr(), hasIDPrefix(), hasCardDefaultSource(), hasEmail("test@test.com")),
-
 		},
 		"invalid token": {
-			token: tokenInvalid,
-			email: "test@test.com",
+			token:  tokenInvalid,
+			email:  "test@test.com",
 			checks: check(hasErrType(stripe.ErrTypeInvalidRequest)),
 		},
 		"card expired": {
-			token: tokenExpiredCard,
-			email: "test@test.com",
+			token:  tokenExpiredCard,
+			email:  "test@test.com",
 			checks: check(hasErrType(stripe.ErrTypeCardError)),
 		},
 	}
