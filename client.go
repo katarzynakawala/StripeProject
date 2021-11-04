@@ -19,7 +19,7 @@ const (
 type Customer struct {
 	ID            string `json:"id"`
 	DefaultSource string `json:"default_source"`
-	Email         string `json:"email`
+	Email         string `json:"email"`
 }
 
 type Charge struct {

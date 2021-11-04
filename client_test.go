@@ -22,9 +22,14 @@ var (
 )
 
 const (
-	tokenAmex        = "tok_amex"
-	tokenInvalid     = "tok_egegege"
-	tokenExpiredCard = "tok_chargeDeclinedExpiredCard"
+	tokenAmex               = "tok_amex"
+	tokenVisaDebit          = "tok_visa_debit"
+	tokenMastercardPrepaid  = "tok_mastercard_prepaid"
+	tokenInvalid            = "tok_alsdkjfa"
+	tokenExpiredCard        = "tok_chargeDeclinedExpiredCard"
+	tokenIncorrectCVC       = "tok_chargeDeclinedIncorrectCvc"
+	tokenInsufficientFunds  = "tok_chargeDeclinedInsufficientFunds"
+	tokenChargeCustomerFail = "tok_chargeCustomerFail"
 )
 
 func init() {
@@ -235,6 +240,16 @@ func TestClient_Customer(t *testing.T) {
 			email:  "test@test.com",
 			checks: check(hasErrType(stripe.ErrTypeCardError)),
 		},
+		"incorrect cvc": {
+			token:  tokenIncorrectCVC,
+			email:  "test@testwithgo.com",
+			checks: check(hasErrType(stripe.ErrTypeCardError)),
+		},
+		"insufficient funds": {
+			token:  tokenInsufficientFunds,
+			email:  "test@testwithgo.com",
+			checks: check(hasErrType(stripe.ErrTypeCardError)),
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -284,38 +299,56 @@ func TestClient_Charge(t *testing.T) {
 		}
 	}
 
-	//create stripe client
-	c, teardown := stripeClient(t)
-	defer teardown()
-	tok := tokenAmex
-	email := "test@test.com"
-
-	cus, err := c.Customer(tok, email)
-	if err != nil {
-		t.Fatalf("Customer() err =%v; want nil", err)
+	customerViaToken := func(token string) func(*testing.T, *stripe.Client) string {
+		return func(t *testing.T, c *stripe.Client) string {
+			email := "test@test.com"
+			cus, err := c.Customer(token, email)
+			if err != nil {
+				t.Fatalf("err creating customer with token %s. err = %v; want nil", token, err)
+			}
+			return cus.ID
+		}
 	}
 
 	tests := map[string]struct {
-		customerID string
+		customerID func(*testing.T, *stripe.Client) string
 		amount     int
 		checks     []checkFn
 	}{
-		"valid charge": {
-			customerID: cus.ID,
+		"valid charge with amex": {
+			customerID: customerViaToken(tokenAmex),
 			amount:     1234,
 			checks:     check(hasNoErr(), hasAmount(1234)),
 		},
+		"valid charge with visa debit": {
+			customerID: customerViaToken(tokenVisaDebit),
+			amount:     8787,
+			checks:     check(hasNoErr(), hasAmount(8787)),
+		},
+		"valid charge with mastercard prepaid": {
+			customerID: customerViaToken(tokenMastercardPrepaid),
+			amount:     98765,
+			checks:     check(hasNoErr(), hasAmount(98765)),
+		},
 		"invalid customer id": {
-			customerID: "cus_missing",
-			amount:     1234,
-			checks:     check(hasErrType(stripe.ErrTypeInvalidRequest)),
+			customerID: func(*testing.T, *stripe.Client) string {
+				return "cus_missing"
+			},
+			amount: 1234,
+			checks: check(hasErrType(stripe.ErrTypeInvalidRequest)),
+		},
+		"charge failure": {
+			customerID: customerViaToken(tokenChargeCustomerFail),
+			amount:     5555,
+			checks:     check(hasErrType(stripe.ErrTypeCardError)),
 		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			c, teardown := stripeClient(t)
 			defer teardown()
-			charge, err := c.Charge(tc.customerID, tc.amount)
+			cusID := tc.customerID(t, c)
+ 			charge, err := c.Charge(cusID, tc.amount)
 			for _, check := range tc.checks {
 				check(t, charge, err)
 			}
